@@ -10,6 +10,16 @@ function mark_card_completed(t){
   t.board('all')
     .then(resulting_board => get_completed_field_id_from_baord(resulting_board))
     .then(field_id => set_end_date_to_current_date(card_id, field_id));
+  
+  let board_id = t.getContext()['board'];
+  get_done_list_id(board_id)
+  .then((list_id) => move_card_to_done(card_id, list_id));
+}
+
+function move_card_to_done(card_id, list_id){
+  let url = "https://api.trello.com/1/cards/" + card_id + "?idList=" + list_id;
+  url = addAuthToken(url);
+  fetch(url, {method: 'PUT', headers: {'content-type': 'application/json'}})
 }
 
 function get_completed_field_id_from_baord(board){
@@ -29,7 +39,21 @@ function set_end_date_to_current_date(card_id, custom_field){
   fetch(url, { body: JSON.stringify(data), method: 'PUT', headers: {'content-type': 'application/json'}})
   .then((resp) => resp.json())
   // .then((data) => console.log(JSON.stringify(data, null, 2)))
-  .catch((err) => console.log(JSON.stringify(err, null, 2)))
+  .catch((err) => console.log("Updating the 'Date Completed' field on this card failed. Make sure the custom field exists on the board.", JSON.stringify(err, null, 2)))
+}
+
+function get_done_list_id(board_id){
+  let url = "https://api.trello.com/1/boards/" + board_id + "/lists?";
+  url = addAuthToken(url);
+  return fetch(url, {method: 'GET', headers: {'content-type': 'application/json'}})
+  .then((resp) => resp.json())
+  .then((lists) => extract_list_id(lists))
+}
+
+function extract_list_id(lists_on_board){
+  for(let list of lists_on_board){
+    if(list.name == "Done") return list.id;
+  }
 }
 
 function addAuthToken(str){
